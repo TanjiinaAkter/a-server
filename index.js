@@ -111,27 +111,15 @@ async function run() {
     });
 
     app.get("/carts", async (req, res) => {
+      const result = await cartsCollection.find().toArray();
+      res.send(result);
+    });
+    app.get("/carts/single", async (req, res) => {
       const email = req.query.email;
-      //email field diye specific email ta khujtesi
       const query = { email: email };
       const result = await cartsCollection.find(query).toArray();
       res.send(result);
     });
-
-    // app.get("/carts", async (req, res) => {
-    //   const result = await cartsCollection.find().toArray();
-    //   res.send(result);
-    // });
-    // app.get("/carts", async (req, res) => {
-    //   const result = await cartsCollection.find().toArray();
-    //   res.send(result);
-    // });
-    // app.get("/carts/single", async (req, res) => {
-    //   const email = req.query.email;
-    //   const query = { email: email };
-    //   const result = await cartsCollection.find(query).toArray();
-    //   res.send(result);
-    // });
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
