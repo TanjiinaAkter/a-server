@@ -100,7 +100,21 @@ async function run() {
       const result = await allproductsCollection.find().toArray();
       res.send(result);
     });
-
+    app.get("/allproducts/DropDown", async (req, res) => {
+      const { topCategory, thirdCategory } = req.query;
+      if (!topCategory || !thirdCategory) {
+        return res
+          .status(400)
+          .json({ error: "Missing required query parameters" });
+      }
+      // query diye find korle full details pabo
+      const query = {
+        topCategory,
+        thirdCategory,
+      };
+      const result = await allproductsCollection.find(query).toArray();
+      res.send(result);
+    });
     // ==========================================================//
     //                  CARTS COLLECTION
     // ==========================================================//
