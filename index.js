@@ -100,8 +100,19 @@ async function run() {
       const result = await allproductsCollection.find().toArray();
       res.send(result);
     });
+
     app.get("/allproducts/DropDown", async (req, res) => {
-      const { topCategory, thirdCategory } = req.query;
+      const {
+        topCategory,
+        thirdCategory,
+        sort,
+        size,
+        color,
+        // availability,
+        priceRange,
+        discountRange,
+      } = req.query;
+      console.log(req.query);
       if (!topCategory || !thirdCategory) {
         return res
           .status(400)
@@ -112,7 +123,63 @@ async function run() {
         topCategory,
         thirdCategory,
       };
-      const result = await allproductsCollection.find(query).toArray();
+      // ================ SIZE FILTERING============= //
+
+      // size amra client side theke "S",'M' evabe pacchi seta /allproducts/DropDown route er query te send kore dicchi  , so amra server e age array te convert kore nicchi karon client e amrader size gulo alada alada s, m, l amn ache,,,  then mongodb $or query diye cindition set korchi jate value mille peye jai,, prottekta k new $or array te push kore dicchi, seta amader product er sathe match hole .finde r maddhome result pacchi
+      if (size) {
+        const sizeArray = size.split(",");
+        query.$or = []; // Initialize $or array for size filtering
+
+        // Loop through the size values and check against individual size fields
+        sizeArray.forEach((sizecheck) => {
+          query.$or.push({
+            $or: [
+              { sizenamelarge: sizecheck },
+              { sizenamemedium: sizecheck },
+              { sizenamesmall: sizecheck },
+            ],
+          });
+        });
+      }
+      // ================ COLOR FILTERING============= //
+      // jehetu color ekta jey e ache so $in use korlei hobe
+      if (color) {
+        query.color = { $in: color.split(",") };
+      }
+      // if (availability) {
+      //   query.availability = availability === "in stock";
+      // }
+      //split er kaj alada kora like priceRange =100-500, alada kore ["100", "500"] emn hobe then seta ke number e convert kore feltese [100,500]
+      // ekhane split("-") use korechi karon amader pawa value 100-500, jodi amader value ta 100/500 hoto tahole amra split('/') evabe ditam
+
+      //$gte == greater than or equal
+      //$lte = less than or equal
+      if (priceRange) {
+        const [minPrice, maxPrice] = priceRange.split("-").map(Number);
+        query.price = { $gte: minPrice, $lte: maxPrice };
+      }
+
+      // Handling discountRange (ensuring "%" is removed properly)
+      if (discountRange) {
+        // Remove "%" sign at the end and split the range
+        const [minDiscount, maxDiscount] = discountRange
+          .replace("%", "") // Remove the "%" sign
+          .split("-") // Split by the hyphen
+          .map(Number); // Convert the strings to numbers
+
+        query.discountedPercentage = { $gte: minDiscount, $lte: maxDiscount }; // Query with the discount range
+      }
+      let sortOption = {};
+      if (sort === "high-to-low") {
+        sortOption.price = -1;
+      }
+      if (sort === "low-to-high") {
+        sortOption.price = 1;
+      }
+      const result = await allproductsCollection
+        .find(query)
+        .sort(sortOption)
+        .toArray();
       res.send(result);
     });
     // ==========================================================//
