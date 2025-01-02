@@ -71,6 +71,7 @@ async function run() {
     const usersCollection = database.collection("users");
     const allproductsCollection = database.collection("allproducts");
     const cartsCollection = database.collection("carts");
+    const wishlistCollection = database.collection("wishlist");
 
     // ==========================================================//
     //                  USER COLLECTION
@@ -112,7 +113,7 @@ async function run() {
         priceRange,
         discountRange,
       } = req.query;
-      console.log(req.query);
+
       if (!topCategory || !thirdCategory) {
         return res
           .status(400)
@@ -199,6 +200,26 @@ async function run() {
       const email = req.query.email;
       const query = { email: email };
       const result = await cartsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // ==========================================================//
+    //                  WISHLIST COLLECTION
+    // ==========================================================//
+    app.post("/wishlist", async (req, res) => {
+      const getData = req.body;
+      const result = await wishlistCollection.insertOne(getData);
+      res.send(result);
+    });
+    app.get("/wishlist", async (req, res) => {
+      const result = await wishlistCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/wishlist/userwishlist", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await wishlistCollection.find(query).toArray();
       res.send(result);
     });
     // Connect the client to the server	(optional starting in v4.7)
