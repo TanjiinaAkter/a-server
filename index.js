@@ -203,13 +203,15 @@ async function run() {
       res.send(result);
     });
     app.patch("/carts/single", async (req, res) => {
-      const { productId, quantity, itemPrice } = req.body;
+      const { productId, quantity, itemPrice, color, size } = req.body;
       const getid = req.params.productId;
       const filter = { _id: new ObjectId(productId) };
       const updatedDoc = {
         $set: {
           quantity,
           itemPrice,
+          color,
+          size,
         },
       };
       console.log(updatedDoc);
