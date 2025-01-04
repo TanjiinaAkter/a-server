@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 const port = process.env.PORT | 5000;
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
@@ -202,7 +202,20 @@ async function run() {
       const result = await cartsCollection.find(query).toArray();
       res.send(result);
     });
-
+    app.patch("/carts/single", async (req, res) => {
+      const { productId, quantity, itemPrice } = req.body;
+      const getid = req.params.productId;
+      const filter = { _id: new ObjectId(productId) };
+      const updatedDoc = {
+        $set: {
+          quantity,
+          itemPrice,
+        },
+      };
+      console.log(updatedDoc);
+      const result = await cartsCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
     // ==========================================================//
     //                  WISHLIST COLLECTION
     // ==========================================================//
