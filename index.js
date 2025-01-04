@@ -203,6 +203,7 @@ async function run() {
       res.send(result);
     });
     app.patch("/carts/single", async (req, res) => {
+      //kon item update korte chai ar sei item er ki ki update hobe seta set kore dite hobe
       const { productId, quantity, itemPrice, color, size } = req.body;
       const getid = req.params.productId;
       const filter = { _id: new ObjectId(productId) };
@@ -216,6 +217,12 @@ async function run() {
       };
       console.log(updatedDoc);
       const result = await cartsCollection.updateOne(filter, updatedDoc);
+      res.send(result);
+    });
+    app.delete("/carts/single/:id", async (req, res) => {
+      const getId = req.params.id;
+      const query = { _id: new ObjectId(getId) };
+      const result = await cartsCollection.deleteOne(query);
       res.send(result);
     });
     // ==========================================================//
