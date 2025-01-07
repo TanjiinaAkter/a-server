@@ -186,23 +186,25 @@ async function run() {
     // ==========================================================//
     //                  CARTS COLLECTION
     // ==========================================================//
+    // ========= cart e item post kora for all users ==========//
     app.post("/carts", async (req, res) => {
       const cartData = req.body;
       const result = await cartsCollection.insertOne(cartData);
       res.send(result);
     });
-
+    // ========= cart e item get kora for all users ==========//
     app.get("/carts", async (req, res) => {
       const result = await cartsCollection.find().toArray();
       res.send(result);
     });
+    // ========= cart er item pawa  for single user ==========//
     app.get("/carts/single", async (req, res) => {
       const { email, id } = req.query;
       const filter = id ? { _id: new ObjectId(id) } : { email };
       const result = await cartsCollection.find(filter).toArray();
       res.send(result);
     });
-
+    // ========= cart er item id diye edit kora for single user ==========//
     app.patch("/carts/single/:id", async (req, res) => {
       //kon item update korte chai ar sei item er ki ki update hobe seta set kore dite hobe
       const { quantity, itemPrice, color, size } = req.body;
@@ -220,6 +222,7 @@ async function run() {
       const result = await cartsCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
+    // ========= cart e item delete kora for all users ==========//
     app.delete("/carts/single/:id", async (req, res) => {
       const getId = req.params.id;
       const query = { _id: new ObjectId(getId) };
