@@ -72,6 +72,7 @@ async function run() {
     const allproductsCollection = database.collection("allproducts");
     const cartsCollection = database.collection("carts");
     const wishlistCollection = database.collection("wishlist");
+    const checkoutInfoCollection = database.collection("checkoutinfo");
 
     // ==========================================================//
     //                  USER COLLECTION
@@ -246,6 +247,20 @@ async function run() {
       const email = req.query.email;
       const query = { email: email };
       const result = await wishlistCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // ==========================================================//
+    //                  CHECKOUT INFORMATION COLLECTION
+    // ==========================================================//
+
+    app.post("/checkoutinfo", async (req, res) => {
+      const getData = req.body;
+      const result = await checkoutInfoCollection.insertOne(getData);
+      res.send(result);
+    });
+    app.get("/checkoutinfo", async (req, res) => {
+      const result = await checkoutInfoCollection.find().toArray();
       res.send(result);
     });
     // Connect the client to the server	(optional starting in v4.7)
