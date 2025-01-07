@@ -197,16 +197,17 @@ async function run() {
       res.send(result);
     });
     app.get("/carts/single", async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
-      const result = await cartsCollection.find(query).toArray();
+      const { email, id } = req.query;
+      const filter = id ? { _id: new ObjectId(id) } : { email };
+      const result = await cartsCollection.find(filter).toArray();
       res.send(result);
     });
-    app.patch("/carts/single", async (req, res) => {
+
+    app.patch("/carts/single/:id", async (req, res) => {
       //kon item update korte chai ar sei item er ki ki update hobe seta set kore dite hobe
-      const { productId, quantity, itemPrice, color, size } = req.body;
-      const getid = req.params.productId;
-      const filter = { _id: new ObjectId(productId) };
+      const { quantity, itemPrice, color, size } = req.body;
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
       const updatedDoc = {
         $set: {
           quantity,
@@ -215,7 +216,7 @@ async function run() {
           size,
         },
       };
-      console.log(updatedDoc);
+      console.log("lets update", updatedDoc);
       const result = await cartsCollection.updateOne(filter, updatedDoc);
       res.send(result);
     });
