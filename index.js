@@ -78,7 +78,7 @@ async function run() {
     const cartsCollection = database.collection("carts");
     const wishlistCollection = database.collection("wishlist");
     const checkoutInfoCollection = database.collection("checkoutinfo");
-
+    const paymentsCollection = database.collection("payments");
     // ==========================================================//
     //                  USER COLLECTION
     // ==========================================================//
@@ -290,7 +290,36 @@ async function run() {
         clientSecret: paymentIntent.client_secret,
       });
     });
+    // ==========================================================//
+    //                 PAYMENT lists saved IN  DATABASE  ...... payment btn e click korar sathe sathe delete kore felte hobe cart item gulo k cart theke//
+    // ==========================================================//
 
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      console.log("hi ", payment);
+      const query = {
+        _id: {
+          $in: payment.cartIds.map((id) => new ObjectId(id)),
+        },
+      };
+      const deleteResult = await cartsCollection.deleteMany(query);
+      const result = await paymentsCollection.insertOne(payment);
+      res.send({
+        result,
+        deleteResult,
+      });
+    });
+
+    app.get("/payments", async (req, res) => {
+      const result = await paymentsCollection.find().toArray();
+      res.send(result);
+    });
+    app.get("/payments/single", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const result = await paymentsCollection.find(query).toArray();
+      res.send(result);
+    });
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
