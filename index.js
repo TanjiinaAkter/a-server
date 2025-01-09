@@ -2,14 +2,19 @@ const express = require("express");
 const app = express();
 const port = process.env.PORT | 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+// config file er secret key use korte hole obossoi age dite hobe process.env.key gular
+require("dotenv").config();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
+// payment er kaj --1
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+console.log(stripe);
 //middleware
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
-require("dotenv").config();
+
 // MONGODB STARTS
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hpnxgzg.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -263,6 +268,29 @@ async function run() {
       const result = await checkoutInfoCollection.find().toArray();
       res.send(result);
     });
+
+    // ==========================================================//
+    //                 PAYMENT INTENT ER KAJ STARTS //
+    // ==========================================================//
+    app.post("/create-payment-intent", async (req, res) => {
+      const { totalPrice } = req.body;
+      if (!totalPrice || totalPrice <= 0) {
+        return res.status(400).send({ error: "Invalid totalPrice value" });
+      }
+      console.log("Received totalPrice:", totalPrice);
+      // poysha te hishab kore tai amra 100 diye gun kore dicchi
+      const amount = parseFloat(totalPrice * 100);
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
