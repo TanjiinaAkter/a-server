@@ -254,7 +254,12 @@ async function run() {
       const result = await wishlistCollection.find(query).toArray();
       res.send(result);
     });
-
+    app.delete("/wishlist/userwishlist/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await wishlistCollection.deleteOne(query);
+      res.send(result);
+    });
     // ==========================================================//
     //                  CHECKOUT INFORMATION COLLECTION
     // ==========================================================//
