@@ -79,6 +79,7 @@ async function run() {
     const wishlistCollection = database.collection("wishlist");
     const checkoutInfoCollection = database.collection("checkoutinfo");
     const paymentsCollection = database.collection("payments");
+    const reviewCollection = database.collection("reviews");
     // ==========================================================//
     //                  USER COLLECTION
     // ==========================================================//
@@ -296,7 +297,7 @@ async function run() {
       });
     });
     // ==========================================================//
-    //                 PAYMENT lists saved IN  DATABASE  ...... payment btn e click korar sathe sathe delete kore felte hobe cart item gulo k cart theke//
+    //  PAYMENT lists saved IN DATABASE... payment btn e click korar sathe sathe delete kore felte hobe cart item gulo k cart theke//
     // ==========================================================//
 
     app.post("/payments", async (req, res) => {
@@ -323,6 +324,27 @@ async function run() {
       const email = req.query.email;
       const query = { email: email };
       const result = await paymentsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    // ==========================================================//
+    //               PRODUCT   REVIEW  COLLECTION
+    // ==========================================================//
+    app.post("/reviews", async (req, res) => {
+      const getData = req.body;
+      const result = await reviewCollection.insertOne(getData);
+      res.send(result);
+    });
+
+    app.get("/reviews", async (req, res) => {
+      const result = await reviewCollection.find().toArray();
+      res.send(result);
+    });
+    app.get("/reviews/single", async (req, res) => {
+      const email = req.query.email;
+      console.log(email);
+      const query = { email: email };
+      const result = await reviewCollection.find(query).toArray();
       res.send(result);
     });
     // Connect the client to the server	(optional starting in v4.7)
