@@ -87,6 +87,7 @@ async function run() {
 
     app.post("/users", async (req, res) => {
       const user = req.body;
+      const query = { email: user.email };
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
@@ -94,7 +95,26 @@ async function run() {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
+    app.get("/users/single", async (req, res) => {
+      const user = req.body;
+      const email = req.query.email;
 
+      const query = { email: email };
+      const result = await usersCollection.findOne(query);
+      res.send(result);
+    });
+    app.patch("/users/single", async (req, res) => {
+      const getUpdatedData = req.body;
+      const email = req.query.email;
+      const query = { email: email };
+      const updatedDoc = {
+        $set: {
+          ...getUpdatedData,
+        },
+      };
+      const result = await usersCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    });
     // ==========================================================//
     //                  AlLL PRODUCTS COLLECTION
     // ==========================================================//
