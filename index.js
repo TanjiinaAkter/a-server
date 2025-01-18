@@ -47,7 +47,11 @@ async function run() {
     // ==========================================================//
     const verifyToken = (req, res, next) => {
       console.log("header auth", req.headers.authorization);
-
+      if (!req.headers.authorization) {
+        return res
+          .status(401)
+          .send({ message: "Forbidden access, token missing" });
+      }
       const token = req.headers.authorization.split(" ")[1];
 
       console.log("hi token", token);
@@ -65,6 +69,7 @@ async function run() {
         }
 
         req.decoded = decoded;
+        console.log(req.decoded);
         next();
       });
     };
@@ -104,19 +109,6 @@ async function run() {
       res.send({ admin });
     });
 
-    // app.get("/users/admin/:email", verifyToken, async (req, res) => {
-    //   const email = req.params.email;
-    //   if (email !== req.decoded.email) {
-    //     return res.status(403).send({ message: "forbidden access" });
-    //   }
-    //   const query = { email: email };
-    //   const user = await usersCollection.findOne(query);
-    //   let admin = false;
-    //   if (user) {
-    //     admin = user?.role === "admin";
-    //   }
-    //   res.send({ admin });
-    // });
     // ==========================================================//
     //                   DATABASE ER KAJ STARTS //
     // ==========================================================//
@@ -139,53 +131,92 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
-    app.get("/users", verifyToken, verifyAdmin, async (req, res) => {
-      const result = await usersCollection.find().toArray();
-      res.send(result);
-    });
-    app.get("/users/single", verifyToken, async (req, res) => {
-      const user = req.body;
-      const email = req.query.email;
 
-      const query = { email: email };
-      const result = await usersCollection.findOne(query);
-      res.send(result);
+    app.get("/users/:email", verifyToken, async (req, res) => {
+      const email = req.decoded.email; // Get the email from the decoded token
+
+      try {
+        // Fetch the user's role from the database
+        const user = await usersCollection.findOne({ email: email });
+
+        if (!user) {
+          return res.status(404).send({ message: "User not found" });
+        }
+
+        if (user.role === "admin") {
+          // Admin can access all users
+          const allUsers = await usersCollection.find().toArray();
+          return res.json(allUsers);
+        } else {
+          // Non-admin user can only access their own data
+          return res.json(user);
+        }
+      } catch (error) {
+        return res.status(500).send({ message: "Error fetching user data" });
+      }
     });
-    app.patch("/users/single", verifyToken, async (req, res) => {
+
+    app.patch("/users/:email", verifyToken, async (req, res) => {
+      const email = req.params.email;
+      const decodedEmail = req.decoded.email; // Authenticated user's email
       const getUpdatedData = req.body;
-      const email = req.query.email;
-      const query = { email: email };
-      const updatedDoc = {
-        $set: {
-          ...getUpdatedData,
-        },
-      };
-      const result = await usersCollection.updateOne(query, updatedDoc);
-      res.send(result);
+
+      try {
+        // Fetch the authenticated user's role ..je update korte chacche tar data nicchi role check kroar jonno
+        const requestingUser = await usersCollection.findOne({
+          email: decodedEmail,
+        });
+        if (!requestingUser) {
+          return res.status(404).send({ message: "Requesting user not found" });
+        }
+
+        // Fetch the target user's role, jar ta amra update korte chacchi sei user er role check korar jonno email ta diye khujtesi just
+        const targetUser = await usersCollection.findOne({ email });
+        if (!targetUser) {
+          return res.status(404).send({ message: "Target user not found" });
+        }
+
+        // Prevent non-admins from updating admin data...mane je user ta jei user er data update korte chacche se jodi admin na hoy ar jar data update korte chacche se jodi admin hoy tahole return kore dibe
+        if (targetUser.role === "admin" && requestingUser.role !== "admin") {
+          return res
+            .status(403)
+            .send({ message: "You cannot edit an admin's data" });
+        }
+
+        // Allow the update if the requester is either:
+        // - The same user as the target
+        // - An admin
+        // verify kora token er user jodi jei user er data update korte chacche sei user e hoy mane same hole update korte parbe, othoba jodi je change korte chacche se admin hoy tahole change korte parbe
+        if (decodedEmail === email || requestingUser.role === "admin") {
+          const query = { email: email };
+          const updatedDoc = {
+            $set: {
+              ...getUpdatedData,
+            },
+          };
+          const result = await usersCollection.updateOne(query, updatedDoc);
+          return res.send(result);
+        } else {
+          return res.status(403).send({ message: "Unauthorized update" });
+        }
+      } catch (error) {
+        console.error("Error in PATCH /users/:email:", error);
+        res.status(500).send({ message: "Server error" });
+      }
     });
 
-    app.delete("/users/:id", async (req, res) => {
+    app.delete("/users/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
-    app.patch("/users/admin/:id", async (req, res) => {
-      const id = req.params.id;
-      const filter = { _id: new ObjectId(id) };
-      const updatedDoc = {
-        $set: {
-          role: "admin",
-        },
-      };
-      const result = await usersCollection.updateOne(filter, updatedDoc);
-      res.send(result);
-    });
+
     // ==========================================================//
     //                  AlLL PRODUCTS COLLECTION
     // ==========================================================//
 
-    app.post("/allproducts", verifyToken, async (req, res) => {
+    app.post("/allproducts", verifyToken, verifyAdmin, async (req, res) => {
       const products = req.body;
       const result = await allproductsCollection.insertOne(products);
       res.send(result);
@@ -281,19 +312,22 @@ async function run() {
     //                  CARTS COLLECTION
     // ==========================================================//
     // ========= cart e item post kora for all users ==========//
-    app.post("/carts", async (req, res) => {
+    app.post("/carts", verifyToken, async (req, res) => {
       const cartData = req.body;
       const result = await cartsCollection.insertOne(cartData);
       res.send(result);
     });
     // ========= cart e item get kora for all users ==========//
-    app.get("/carts", async (req, res) => {
-      const result = await cartsCollection.find().toArray();
-      res.send(result);
-    });
+    // app.get("/carts", verifyToken, async (req, res) => {
+    //   const result = await cartsCollection.find().toArray();
+    //   res.send(result);
+    // });
     // ========= cart er item pawa  for single user ==========//
-    app.get("/carts/single", async (req, res) => {
+    app.get("/carts/single", verifyToken, async (req, res) => {
       const { email, id } = req.query;
+      if (email !== req.decoded.email) {
+        res.status(403).send({ message: "forbidden" });
+      }
       const filter = id ? { _id: new ObjectId(id) } : { email };
       const result = await cartsCollection.find(filter).toArray();
       res.send(result);
@@ -317,7 +351,7 @@ async function run() {
       res.send(result);
     });
     // ========= cart e item delete kora for all users ==========//
-    app.delete("/carts/single/:id", async (req, res) => {
+    app.delete("/carts/single/:id", verifyToken, async (req, res) => {
       const getId = req.params.id;
       const query = { _id: new ObjectId(getId) };
       const result = await cartsCollection.deleteOne(query);
@@ -326,23 +360,23 @@ async function run() {
     // ==========================================================//
     //                  WISHLIST COLLECTION
     // ==========================================================//
-    app.post("/wishlist", async (req, res) => {
+    app.post("/wishlist", verifyToken, async (req, res) => {
       const getData = req.body;
       const result = await wishlistCollection.insertOne(getData);
       res.send(result);
     });
-    app.get("/wishlist", async (req, res) => {
+    app.get("/wishlist", verifyToken, async (req, res) => {
       const result = await wishlistCollection.find().toArray();
       res.send(result);
     });
 
-    app.get("/wishlist/userwishlist", async (req, res) => {
+    app.get("/wishlist/userwishlist", verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
       const result = await wishlistCollection.find(query).toArray();
       res.send(result);
     });
-    app.delete("/wishlist/userwishlist/:id", async (req, res) => {
+    app.delete("/wishlist/userwishlist/:id", verifyToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await wishlistCollection.deleteOne(query);
@@ -352,12 +386,12 @@ async function run() {
     //                  CHECKOUT INFORMATION COLLECTION
     // ==========================================================//
 
-    app.post("/checkoutinfo", async (req, res) => {
+    app.post("/checkoutinfo", verifyToken, async (req, res) => {
       const getData = req.body;
       const result = await checkoutInfoCollection.insertOne(getData);
       res.send(result);
     });
-    app.get("/checkoutinfo", async (req, res) => {
+    app.get("/checkoutinfo", verifyToken, async (req, res) => {
       const result = await checkoutInfoCollection.find().toArray();
       res.send(result);
     });
@@ -417,17 +451,17 @@ async function run() {
     // ==========================================================//
     //               PRODUCT   REVIEW  COLLECTION
     // ==========================================================//
-    app.post("/reviews", async (req, res) => {
+    app.post("/reviews", verifyToken, async (req, res) => {
       const getData = req.body;
       const result = await reviewCollection.insertOne(getData);
       res.send(result);
     });
 
-    app.get("/reviews", async (req, res) => {
+    app.get("/reviews", verifyToken, async (req, res) => {
       const result = await reviewCollection.find().toArray();
       res.send(result);
     });
-    app.get("/reviews/single", async (req, res) => {
+    app.get("/reviews/single", verifyToken, async (req, res) => {
       const email = req.query.email;
       console.log(email);
       const query = { email: email };
