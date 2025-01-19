@@ -333,7 +333,7 @@ async function run() {
       res.send(result);
     });
     // ========= cart er item id diye edit kora for single user ==========//
-    app.patch("/carts/single/:id", async (req, res) => {
+    app.patch("/carts/single/:id", verifyToken, async (req, res) => {
       //kon item update korte chai ar sei item er ki ki update hobe seta set kore dite hobe
       const { quantity, itemPrice, color, size } = req.body;
       const id = req.params.id;
@@ -421,7 +421,7 @@ async function run() {
     //  PAYMENT lists saved IN DATABASE... payment btn e click korar sathe sathe delete kore felte hobe cart item gulo k cart theke//
     // ==========================================================//
 
-    app.post("/payments", async (req, res) => {
+    app.post("/payments", verifyToken, async (req, res) => {
       const payment = req.body;
       console.log("hi ", payment);
       const query = {
@@ -437,11 +437,11 @@ async function run() {
       });
     });
 
-    app.get("/payments", async (req, res) => {
+    app.get("/payments", verifyToken, async (req, res) => {
       const result = await paymentsCollection.find().toArray();
       res.send(result);
     });
-    app.get("/payments/single", async (req, res) => {
+    app.get("/payments/single", verifyToken, async (req, res) => {
       const email = req.query.email;
       const query = { email: email };
       const result = await paymentsCollection.find(query).toArray();
