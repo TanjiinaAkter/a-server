@@ -308,6 +308,37 @@ async function run() {
         .toArray();
       res.send(result);
     });
+    app.patch(
+      "/allproducts/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const filter = { _id: new ObjectId(id) };
+        const newData = req.body;
+        const updatedDoc = {
+          $set: {
+            ...newData,
+          },
+        };
+        const result = await allproductsCollection.updateOne(
+          filter,
+          updatedDoc
+        );
+        res.send(result);
+      }
+    );
+    app.delete(
+      "/allproducts/:id",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await allproductsCollection.deleteOne(query);
+        res.send(result);
+      }
+    );
     // ==========================================================//
     //                  CARTS COLLECTION
     // ==========================================================//
@@ -437,17 +468,47 @@ async function run() {
       });
     });
 
-    app.get("/payments", verifyToken, async (req, res) => {
-      const result = await paymentsCollection.find().toArray();
-      res.send(result);
-    });
-    app.get("/payments/single", verifyToken, async (req, res) => {
-      const email = req.query.email;
-      const query = { email: email };
-      const result = await paymentsCollection.find(query).toArray();
-      res.send(result);
-    });
+    app.get("/payments/:email", verifyToken, async (req, res) => {
+      const decodedEmail = req.decoded.email;
 
+      try {
+        const user = await usersCollection.findOne({ email: decodedEmail });
+
+        console.log("here payment user email", user);
+        if (!user) {
+          return res.status(404).send({ message: "User not found" });
+        }
+        if (user?.role == "admin") {
+          const allPayments = await paymentsCollection.find().toArray();
+          return res.json(allPayments);
+        } else {
+          const userPayment = await paymentsCollection
+            .find({ email: decodedEmail })
+            .toArray();
+          return res.json(userPayment);
+        }
+      } catch (error) {
+        return res.status(404).send({
+          message: "error getting to fetch payments data",
+        });
+      }
+    });
+    app.patch("/payments/:id", verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const dataget = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updatedDoc = {
+        $set: dataget,
+      };
+      const result = await paymentsCollection.updateOne(query, updatedDoc);
+      res.send(result);
+    });
+    app.delete("/payments/:id", verifyToken, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await paymentsCollection.deleteOne(query);
+      res.send(result);
+    });
     // ==========================================================//
     //               PRODUCT   REVIEW  COLLECTION
     // ==========================================================//
