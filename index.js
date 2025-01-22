@@ -539,6 +539,100 @@ async function run() {
       res.send(result);
     });
 
+    // ==========================================================//
+    //               ADMIN STATS
+    // ==========================================================//
+    app.get("/admin-stats", async (req, res) => {
+      // ekhane total koyta order ache setar man dibe
+      const orders = await paymentsCollection.estimatedDocumentCount();
+      // total koyta product ache setar man dibe
+      const products = await allproductsCollection.estimatedDocumentCount();
+      // agrregate diye notun array bannachi, eitukur kaj hocche unique category niye group kora ar id er bodole category name rename kora
+      const categoryResult = await allproductsCollection
+        .aggregate([
+          // $group er kaj hocche sob uniquw topCategory niye group kora
+          {
+            $group: {
+              _id: "$topCategory",
+            },
+          },
+          // _id name change kore category name rename kortesi
+          {
+            $project: {
+              // id k output theke bad deya
+              _id: 0,
+              // id k category name rename korlam
+              category: "$_id",
+            },
+          },
+        ])
+        .toArray();
+      // category er value gulo niye ekta array pacchi
+      const topCategories = categoryResult.map((item) => item.category);
+      console.log(topCategories);
+      const topCategoriesLength = topCategories.length;
+
+      const revenueCalculate = await paymentsCollection
+        .aggregate([
+          {
+            $group: {
+              //sob id k nicchi
+              _id: null,
+              totalRevenue: {
+                $sum: "$price",
+              },
+            },
+          },
+        ])
+        .toArray();
+      const revenue =
+        revenueCalculate.length > 0 ? revenueCalculate[0].totalRevenue : 0;
+      console.log(revenue, orders, products, topCategoriesLength);
+
+      //// ========= ordeer overview  for pie chart
+
+      const orderPie = await paymentsCollection
+        .aggregate([
+          {
+            $group: {
+              _id: "$status",
+              // pending :4 ta thakle 4 boshbe..ekhane sum:2 dile pending:8 ashto
+              count: { $sum: 1 },
+            },
+          },
+          {
+            $project: {
+              //group theke _id field bad disi
+              _id: 0,
+              // _id k rename kore status disi
+              status: "$_id",
+              // mane group er count field ta nilam
+              count: 1,
+            },
+          },
+        ])
+        .toArray();
+      //console.log(orderPie); // eitar console hobe emn [
+      //   { count: 6, status: 'pending' },
+      //   { count: 1, status: 'shipped' },
+      //   { count: 1, status: 'confirmed' },
+      //   { count: 1, status: 'delivered' }
+      // ]
+
+      const getstatusPercantage = orderPie.map((order) => ({
+        status: order.status,
+        statusPercantage: ((order.count / orders) * 100).toFixed(1),
+      }));
+      console.log(getstatusPercantage);
+      res.send({
+        orders,
+        products,
+        revenue,
+        topCategoriesLength,
+        getstatusPercantage,
+      });
+    });
+
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
 
@@ -552,6 +646,7 @@ async function run() {
     // await client.close();
   }
 }
+
 run().catch(console.dir);
 
 app.get("/", (req, res) => {
