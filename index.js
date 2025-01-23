@@ -543,10 +543,13 @@ async function run() {
     //               ADMIN STATS
     // ==========================================================//
     app.get("/admin-stats", async (req, res) => {
+      // ======= TOTAL ORDER =========//
       // ekhane total koyta order ache setar man dibe
       const orders = await paymentsCollection.estimatedDocumentCount();
+      // ======= TOTAL PRODUCTS =========//
       // total koyta product ache setar man dibe
       const products = await allproductsCollection.estimatedDocumentCount();
+      // ======= TOTAL TOP CATEGORIES =========//
       // agrregate diye notun array bannachi, eitukur kaj hocche unique category niye group kora ar id er bodole category name rename kora
       const categoryResult = await allproductsCollection
         .aggregate([
@@ -571,7 +574,7 @@ async function run() {
       const topCategories = categoryResult.map((item) => item.category);
       console.log(topCategories);
       const topCategoriesLength = topCategories.length;
-
+      // ======= TOTAL REVENUE =========//
       const revenueCalculate = await paymentsCollection
         .aggregate([
           {
@@ -585,11 +588,12 @@ async function run() {
           },
         ])
         .toArray();
+      console.log(revenueCalculate);
       const revenue =
         revenueCalculate.length > 0 ? revenueCalculate[0].totalRevenue : 0;
       console.log(revenue, orders, products, topCategoriesLength);
 
-      //// ========= ordeer overview  for pie chart
+      // ======= ORDER OVERVIEW FOR PIE CHART(CIRCLE CHART TA)=========//
 
       const orderPie = await paymentsCollection
         .aggregate([
