@@ -625,6 +625,7 @@ async function run() {
 
       const getstatusPercantage = orderPie.map((order) => ({
         status: order.status,
+        count: order.count,
         statusPercantage: ((order.count / orders) * 100).toFixed(1),
       }));
       console.log(getstatusPercantage);
