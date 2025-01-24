@@ -542,7 +542,7 @@ async function run() {
     // ==========================================================//
     //               ADMIN STATS
     // ==========================================================//
-    app.get("/admin-stats", async (req, res) => {
+    app.get("/admin-stats", verifyToken, verifyAdmin, async (req, res) => {
       // ======= TOTAL ORDER =========//
       // ekhane total koyta order ache setar man dibe
       const orders = await paymentsCollection.estimatedDocumentCount();
