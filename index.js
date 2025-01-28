@@ -7,6 +7,15 @@ require("dotenv").config();
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser");
+// MAILGUN er kaj --1
+const formData = require("form-data");
+const Mailgun = require("mailgun.js");
+const mailgun = new Mailgun(formData);
+// bivinno jatgay email send korle hole mailgun er ekta client toiri korte hobe
+const mg = mailgun.client({
+  username: "api",
+  key: process.env.MAIL_GUN_API_KEY,
+});
 // payment er kaj --1
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 console.log(stripe);
@@ -461,6 +470,23 @@ async function run() {
         },
       };
       const deleteResult = await cartsCollection.deleteMany(query);
+      // payment e click korar sathe sathe cart theke items delete hocche ar erpor email send korar jonno nicher tuku hobe
+      mg.messages
+        .create(process.env.MAIL_SENDING_DOMAIN, {
+          from: "Excited User <mailgun@sandboxb148b65ba73f41dc973519a0812f76ee.mailgun.org>",
+          to: ["test@gmail.com"],
+          subject: "Havenque payment connfirmation email!! ",
+          text: "Testing some Mailgun awesomeness!",
+          html: `
+          <div>
+          <h1>Thank you for your payment !</h1>
+          <h1>your transaction id is ${payment.role}!</h1>
+          <p>We would like to get your feedback from you about our products</p>
+          </div>
+          `,
+        })
+        .then((msg) => console.log(msg)) // logs response data
+        .catch((err) => console.log(err)); // logs any error
       const result = await paymentsCollection.insertOne(payment);
       res.send({
         result,
