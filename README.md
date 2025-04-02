@@ -5,6 +5,7 @@ Live site - [Visit live site here](https://a10-client.web.app/)
 ## Technologies used
 - Node.js
 - Express.js
+- CORS
 - Mongo DB
 - JWT (JSON Web Token)
 - Stripe payment integration
